@@ -1,0 +1,224 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Windows.Forms;
+
+namespace Programa2
+{
+    public partial class PrincipalForm : Form
+    {
+        private List<string> listaArchivos = new List<string>();
+        private string rutaArchivoGuardado = "archivos.txt"; // Ruta para guardar los archivos
+
+        public PrincipalForm()
+        {
+            InitializeComponent();
+        }
+
+        private void PrincipalForm_Load(object sender, EventArgs e)
+        {
+            CargarArchivos();
+        }
+
+        private void ButtonAgregarArchivo_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog openFileDialog = new OpenFileDialog())
+            {
+                openFileDialog.Filter = "Documentos|*.pdf;*.docx;*.txt|Todos los archivos|*.*";
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    string archivoSeleccionado = openFileDialog.FileName;
+                    if (!listaArchivos.Contains(archivoSeleccionado))
+                    {
+                        listaArchivos.Add(archivoSeleccionado);
+                        listBoxArchivos.Items.Add(Path.GetFileName(archivoSeleccionado));
+                        GuardarArchivos();
+                    }
+                    else
+                    {
+                        MessageBox.Show("El archivo ya está agregado.");
+                    }
+                }
+            }
+        }
+
+        private void ButtonEliminarArchivo_Click(object sender, EventArgs e)
+        {
+            if (listBoxArchivos.SelectedIndex != -1)
+            {
+                string archivoSeleccionado = listaArchivos[listBoxArchivos.SelectedIndex];
+                listaArchivos.RemoveAt(listBoxArchivos.SelectedIndex);
+                listBoxArchivos.Items.RemoveAt(listBoxArchivos.SelectedIndex);
+                GuardarArchivos();
+            }
+            else
+            {
+                MessageBox.Show("Seleccione un archivo para eliminar.");
+            }
+        }
+
+        private void ListBoxArchivos_DoubleClick(object sender, EventArgs e)
+        {
+            if (listBoxArchivos.SelectedIndex != -1)
+            {
+                string archivoSeleccionado = listaArchivos[listBoxArchivos.SelectedIndex];
+                // Abre el EditorForm para editar el archivo
+                EditorForm editor = new EditorForm(archivoSeleccionado);
+                editor.ShowDialog();
+            }
+        }
+
+        private void CargarArchivos()
+        {
+            if (File.Exists(rutaArchivoGuardado))
+            {
+                string[] archivosGuardados = File.ReadAllLines(rutaArchivoGuardado);
+                foreach (string archivo in archivosGuardados)
+                {
+                    listaArchivos.Add(archivo);
+                    listBoxArchivos.Items.Add(Path.GetFileName(archivo));
+                }
+            }
+        }
+
+        private void GuardarArchivos()
+        {
+            File.WriteAllLines(rutaArchivoGuardado, listaArchivos);
+        }
+    }
+}
+
+
+
+
+
+
+
+namespace Programa2
+{
+    partial class PrincipalForm
+    {
+        private System.Windows.Forms.Button buttonAgregarArchivo;
+        private System.Windows.Forms.Button buttonEliminarArchivo;
+        private System.Windows.Forms.ListBox listBoxArchivos;
+
+        private void InitializeComponent()
+        {
+            this.buttonAgregarArchivo = new System.Windows.Forms.Button();
+            this.buttonEliminarArchivo = new System.Windows.Forms.Button();
+            this.listBoxArchivos = new System.Windows.Forms.ListBox();
+            this.SuspendLayout();
+
+            // 
+            // buttonAgregarArchivo
+            // 
+            this.buttonAgregarArchivo.Location = new System.Drawing.Point(12, 12);
+            this.buttonAgregarArchivo.Name = "buttonAgregarArchivo";
+            this.buttonAgregarArchivo.Size = new System.Drawing.Size(150, 30);
+            this.buttonAgregarArchivo.TabIndex = 0;
+            this.buttonAgregarArchivo.Text = "Agregar Archivo";
+            this.buttonAgregarArchivo.UseVisualStyleBackColor = true;
+            this.buttonAgregarArchivo.Click += new System.EventHandler(this.ButtonAgregarArchivo_Click);
+
+            // 
+            // buttonEliminarArchivo
+            // 
+            this.buttonEliminarArchivo.Location = new System.Drawing.Point(168, 12);
+            this.buttonEliminarArchivo.Name = "buttonEliminarArchivo";
+            this.buttonEliminarArchivo.Size = new System.Drawing.Size(150, 30);
+            this.buttonEliminarArchivo.TabIndex = 1;
+            this.buttonEliminarArchivo.Text = "Eliminar Archivo";
+            this.buttonEliminarArchivo.UseVisualStyleBackColor = true;
+            this.buttonEliminarArchivo.Click += new System.EventHandler(this.ButtonEliminarArchivo_Click);
+
+            // 
+            // listBoxArchivos
+            // 
+            this.listBoxArchivos.FormattingEnabled = true;
+            this.listBoxArchivos.ItemHeight = 15;
+            this.listBoxArchivos.Location = new System.Drawing.Point(12, 48);
+            this.listBoxArchivos.Name = "listBoxArchivos";
+            this.listBoxArchivos.Size = new System.Drawing.Size(306, 199);
+            this.listBoxArchivos.TabIndex = 2;
+            this.listBoxArchivos.DoubleClick += new System.EventHandler(this.ListBoxArchivos_DoubleClick);
+
+            // 
+            // PrincipalForm
+            // 
+            this.ClientSize = new System.Drawing.Size(330, 270);
+            this.Controls.Add(this.listBoxArchivos);
+            this.Controls.Add(this.buttonEliminarArchivo);
+            this.Controls.Add(this.buttonAgregarArchivo);
+            this.Name = "PrincipalForm";
+            this.Load += new System.EventHandler(this.PrincipalForm_Load);
+            this.ResumeLayout(false);
+        }
+    }
+}
+
+
+
+
+
+
+using System;
+using System.Windows.Forms;
+using MuPDF; // Asegúrate de tener esta referencia
+
+namespace Programa2
+{
+    public partial class EditorForm : Form
+    {
+        private string archivoActual;
+        private MuPDFViewer muPdfViewer;
+
+        public EditorForm(string archivo)
+        {
+            InitializeComponent();
+            archivoActual = archivo;
+            muPdfViewer = new MuPDFViewer();
+            muPdfViewer.Dock = DockStyle.Fill;
+            this.Controls.Add(muPdfViewer);
+        }
+
+        private void EditorForm_Load(object sender, EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(archivoActual))
+            {
+                try
+                {
+                    // Cargar el PDF en el visor
+                    muPdfViewer.Load(archivoActual);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error al cargar el PDF: " + ex.Message);
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+namespace Programa2
+{
+    partial class EditorForm
+    {
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+            // 
+            // EditorForm
+            // 
+            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Name = "EditorForm";
+            this.Load += new System.EventHandler(this.EditorForm_Load);
+            this.ResumeLayout(false);
+        }
+    }
+}
+
