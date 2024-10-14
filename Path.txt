@@ -1,0 +1,154 @@
+namespace Programa2
+{
+    partial class EditorForm
+    {
+        private System.Windows.Forms.Button buttonGuardar;
+        private System.Windows.Forms.Button buttonCerrar;
+        private System.Windows.Forms.PictureBox pictureBoxPDF;
+
+        private void InitializeComponent()
+        {
+            this.buttonGuardar = new System.Windows.Forms.Button();
+            this.buttonCerrar = new System.Windows.Forms.Button();
+            this.pictureBoxPDF = new System.Windows.Forms.PictureBox();
+            this.SuspendLayout();
+
+            // 
+            // buttonGuardar
+            // 
+            this.buttonGuardar.Location = new System.Drawing.Point(12, 12);
+            this.buttonGuardar.Name = "buttonGuardar";
+            this.buttonGuardar.Size = new System.Drawing.Size(150, 30);
+            this.buttonGuardar.TabIndex = 0;
+            this.buttonGuardar.Text = "Guardar PDF";
+            this.buttonGuardar.UseVisualStyleBackColor = true;
+            this.buttonGuardar.Click += new System.EventHandler(this.ButtonGuardar_Click);
+
+            // 
+            // buttonCerrar
+            // 
+            this.buttonCerrar.Location = new System.Drawing.Point(168, 12);
+            this.buttonCerrar.Name = "buttonCerrar";
+            this.buttonCerrar.Size = new System.Drawing.Size(150, 30);
+            this.buttonCerrar.TabIndex = 1;
+            this.buttonCerrar.Text = "Cerrar";
+            this.buttonCerrar.UseVisualStyleBackColor = true;
+            this.buttonCerrar.Click += new System.EventHandler(this.ButtonCerrar_Click);
+
+            // 
+            // pictureBoxPDF
+            // 
+            this.pictureBoxPDF.Location = new System.Drawing.Point(12, 50);
+            this.pictureBoxPDF.Name = "pictureBoxPDF";
+            this.pictureBoxPDF.Size = new System.Drawing.Size(776, 388);
+            this.pictureBoxPDF.TabIndex = 2;
+            this.pictureBoxPDF.TabStop = false;
+
+            // 
+            // EditorForm
+            // 
+            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.pictureBoxPDF);
+            this.Controls.Add(this.buttonGuardar);
+            this.Controls.Add(this.buttonCerrar);
+            this.Name = "EditorForm";
+            this.Load += new System.EventHandler(this.EditorForm_Load);
+            this.ResumeLayout(false);
+        }
+    }
+}
+
+
+
+
+
+using System;
+using System.Windows.Forms;
+using PdfSharp.Pdf;
+using PdfSharp.Drawing;
+using PdfSharp.Pdf.IO;
+using MigraDoc.DocumentObjectModel;
+using MigraDoc.Rendering;
+using PdfSharp.UniversalAccessibility.Drawing;
+using System.Drawing;
+
+namespace Programa2
+{
+    public partial class EditorForm : Form
+    {
+        private string archivoActual;
+        private PdfDocument pdfDocumento;
+
+        public EditorForm(string archivo)
+        {
+            InitializeComponent();
+            archivoActual = archivo;
+        }
+
+        private void EditorForm_Load(object sender, EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(archivoActual))
+            {
+                try
+                {
+                    // Cargar el PDF usando PDFSharp
+                    pdfDocumento = PdfReader.Open(archivoActual, PdfDocumentOpenMode.Modify);
+
+                    // Convertir el PDF a imagen para mostrar en el RichTextBox
+                    MostrarPDF();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error al cargar el PDF: " + ex.Message);
+                }
+            }
+        }
+
+        private void MostrarPDF()
+        {
+            // Renderiza la primera página del PDF como imagen
+            if (pdfDocumento.PageCount > 0)
+            {
+                PdfPage page = pdfDocumento.Pages[0];
+                XGraphics gfx = XGraphics.FromPdfPage(page);
+                Bitmap bmp = new Bitmap((int)page.Width, (int)page.Height);
+
+                using (Graphics g = Graphics.FromImage(bmp))
+                {
+                    XGraphics xgfx = XGraphics.FromGraphics(g, new XSize(bmp.Width, bmp.Height));
+                    gfx.DrawImage(xgfx);
+                }
+
+                // Muestra la imagen en el RichTextBox o en un PictureBox
+                pictureBoxPDF.Image = bmp;
+            }
+        }
+
+        // Método para guardar el PDF modificado
+        private void ButtonGuardar_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Archivos PDF (*.pdf)|*.pdf"
+            };
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                string filePath = saveFileDialog.FileName;
+                pdfDocumento.Save(filePath);
+                MessageBox.Show("El PDF ha sido guardado con éxito: " + Path.GetFileName(filePath));
+            }
+        }
+
+        // Método para cerrar el formulario
+        private void ButtonCerrar_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+    }
+}
+
+
+
+
+
